@@ -1,21 +1,36 @@
-/* ----- BASE ----- */
+/* ============================
+   DA NOIR / ORANGE – SUPERVISION
+   Cartes dark, zones de texte claires
+   ============================ */
 
+/* ----- BASE ----- */
 body {
   margin: 0;
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   background: #121212;
   color: #EDEDED;
 }
 
-h1, h2, h3, h4, h5 {
+h1, h2, h3, h4, h5, h6 {
   color: #EDEDED;
   font-weight: 600;
+  margin-bottom: .75rem;
 }
 
 a { text-decoration: none; }
 
-/* ----- NAVBAR ----- */
+/* ----- LAYOUT HELPERS ----- */
+.small-muted {
+  font-size: 13px;
+  color: #9A9A9A;
+}
 
+hr {
+  border-color: #2A2A2A;
+  opacity: 1;
+}
+
+/* ----- NAVBAR ----- */
 .navbar {
   background: #121212 !important;
   border-bottom: 1px solid #1F1F1F;
@@ -25,11 +40,13 @@ a { text-decoration: none; }
   color: #FF8A00 !important;
   font-weight: 700;
   font-size: 20px;
+  letter-spacing: .3px;
 }
 
 .nav-link {
   font-weight: 400;
   color: #CFCFCF !important;
+  padding: .25rem .75rem;
 }
 
 .nav-link.active {
@@ -37,25 +54,42 @@ a { text-decoration: none; }
   border-bottom: 2px solid #FF8A00;
 }
 
-/* ----- CARDS ----- */
-
+/* ----- CARDS (dark) ----- */
 .card {
-  background: #1A1A1A;
-  border: 1px solid #2E2E2E;
+  position: relative;
+  background: linear-gradient(180deg, #1A1A1A 0%, #161616 100%);
+  border: 1px solid #343434;     /* visible sans hover */
   border-radius: 14px;
   padding: 18px;
-  box-shadow: 0 4px 8px rgba(0,0,0,.25);
-}
-
-/* Hover lift */
-.card:hover {
-  transform: translateY(-2px);
-  border-color: #FF8A00;
+  box-shadow:
+    0 6px 14px rgba(0,0,0,.45),
+    inset 0 0 0 1px rgba(255,255,255,.03);
   transition: 0.2s ease-in-out;
 }
 
-/* ----- BUTTONS ----- */
+.card h5, .card h6 {
+  color: #F5F5F5;
+  font-weight: 600;
+  letter-spacing: .2px;
+}
 
+.card:hover {
+  transform: translateY(-2px);
+  border-color: #FF8A00;
+  box-shadow:
+    0 10px 22px rgba(0,0,0,.55),
+    0 0 0 1px rgba(255,138,0,.25),
+    0 0 18px rgba(255,138,0,.18);
+}
+
+/* Variantes utiles */
+.chart-card {
+  height: 380px;
+  background: #181818;
+  border-color: #3A3A3A;
+}
+
+/* ----- BUTTONS ----- */
 .btn-primary {
   background: #FF8A00;
   border: none;
@@ -65,12 +99,14 @@ a { text-decoration: none; }
 
 .btn-primary:hover {
   background: #FF9F2D;
+  color: #121212;
 }
 
 .btn-secondary {
   background: transparent;
   border: 1px solid #2E2E2E;
   color: #CFCFCF;
+  font-weight: 500;
 }
 
 .btn-secondary:hover {
@@ -78,36 +114,7 @@ a { text-decoration: none; }
   color: #FFFFFF;
 }
 
-/* ----- TABLES ----- */
-
-table {
-  color: #CFCFCF;
-}
-
-.table thead th {
-  color: #EDEDED;
-  border-bottom: 1px solid #2E2E2E;
-}
-
-.table td {
-  border-bottom: 1px solid #1F1F1F;
-}
-
-/* ----- INPUTS ----- */
-
-.form-control, .form-select {
-  background: #1A1A1A;
-  border: 1px solid #2E2E2E;
-  color: #EDEDED;
-}
-
-.form-control:focus, .form-select:focus {
-  border-color: #FF8A00;
-  box-shadow: 0 0 0 1px #FF8A00;
-}
-
 /* ----- BADGES ----- */
-
 .badge-soft {
   background: #2E2E2E;
   color: #FF8A00;
@@ -115,15 +122,115 @@ table {
   border-radius: 6px;
   font-weight: 600;
   font-size: 12px;
+  border: 1px solid #3A3A3A;
 }
 
-/* ----- CHART CARDS ----- */
-
-.chart-card {
-  height: 380px;
+/* ----- INPUTS / SELECTS (zones de texte claires) ----- */
+.form-control,
+.form-select {
+  background: #F2F2F2;        /* zone claire */
+  color: #121212;             /* texte sombre */
+  border: 1px solid #C8C8C8;
+  font-weight: 500;
 }
 
-.small-muted {
-  font-size: 13px;
-  color: #9A9A9A;
+.form-control::placeholder {
+  color: #6A6A6A;
+  font-weight: 400;
+}
+
+.form-control:focus,
+.form-select:focus {
+  background: #FFFFFF;
+  border-color: #FF8A00;
+  box-shadow: 0 0 0 1px #FF8A00;
+  color: #121212;
+}
+
+/* Labels */
+label, .form-label {
+  color: #CFCFCF;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+/* ----- TABLES (zones claires) ----- */
+.table {
+  color: #121212;             /* texte sombre */
+  background: #F2F2F2;        /* fond clair global */
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 0;
+}
+
+.table thead th {
+  background: #E0E0E0;
+  color: #121212;
+  border-bottom: 2px solid #C0C0C0;
+  font-weight: 700;
+  letter-spacing: .2px;
+}
+
+.table tbody td {
+  background: #F7F7F7;
+  border-bottom: 1px solid #E0E0E0;
+  font-weight: 500;
+}
+
+.table tbody tr:hover td {
+  background: #EDEDED;
+}
+
+/* Tables Bootstrap dark override (si présent) */
+.table-dark {
+  --bs-table-bg: #F2F2F2;
+  --bs-table-color: #121212;
+  --bs-table-striped-bg: #F7F7F7;
+  --bs-table-striped-color: #121212;
+  --bs-table-hover-bg: #EDEDED;
+  --bs-table-hover-color: #121212;
+  border-color: #E0E0E0;
+}
+
+/* ----- TEXT BLOCKS (optionnel) ----- */
+.card .text-block,
+.card .text-zone {
+  background: #F6F6F6;
+  padding: 8px 12px;
+  border-radius: 10px;
+  color: #121212;
+  border: 1px solid #E0E0E0;
+}
+
+/* ----- CHART.JS CANVAS ----- */
+canvas {
+  background: transparent;
+}
+
+/* Ajuste lisibilité des légendes ChartJS (si besoin par JS) */
+.chart-legend,
+.chart-title {
+  color: #CFCFCF;
+}
+
+/* ----- SCROLLBAR (optionnel) ----- */
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #121212;
+}
+::-webkit-scrollbar-thumb {
+  background: #2E2E2E;
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #FF8A00;
+}
+
+/* ----- RESPONSIVE TWEAKS ----- */
+@media (max-width: 768px) {
+  .navbar-brand { font-size: 18px; }
+  .card { padding: 14px; }
+  .chart-card { height: 320px; }
 }

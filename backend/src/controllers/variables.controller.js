@@ -1,24 +1,45 @@
 const { query } = require("../db");
 const { restartSchedulers } = require("../services/scheduler.service");
 
+// Récupérer toutes les variables avec infos automate
 exports.getAll = async (req, res) => {
   const rows = await query(`
-    SELECT v.*, a.name AS automate_name, a.ip_address
+    SELECT 
+      v.id,
+      v.automate_id,
+      v.name,
+      v.register_address,
+      v.register_type,
+      v.frequency_sec,
+      v.unit,
+      v.created_at,
+      a.name AS automate_name,
+      a.ip_address
     FROM variables v
     JOIN automates a ON a.id = v.automate_id
     ORDER BY v.id DESC
   `);
+
   res.json(rows);
 };
 
+// Récupérer une variable par id
 exports.getOne = async (req, res) => {
+  const { id } = req.params;
+
   const rows = await query(
-    "SELECT * FROM variables WHERE id=?",
-    [req.params.id]
+    "SELECT * FROM variables WHERE id = ?",
+    [id]
   );
-  res.json(rows[0] || null);
+
+  if (!rows[0]) {
+    return res.status(404).json({ error: "Variable not found" });
+  }
+
+  res.json(rows[0]);
 };
 
+// Créer une nouvelle variable
 exports.create = async (req, res) => {
   const {
     automate_id,
@@ -33,6 +54,8 @@ exports.create = async (req, res) => {
     return res.status(400).json({ error: "Missing fields" });
   }
 
+  const freq = frequency_sec ? Number(frequency_sec) : 5;
+
   const r = await query(`
     INSERT INTO variables
       (automate_id, name, register_address, register_type, frequency_sec, unit)
@@ -42,14 +65,18 @@ exports.create = async (req, res) => {
     name,
     register_address,
     register_type || "holding",
-    frequency_sec || 5,
+    freq,
     unit || null
   ]);
 
+  // insertId peut être un BigInt → on le convertit
+  const newId = Number(r.insertId);
+
   await restartSchedulers();
-  res.status(201).json({ id: r.insertId });
+  res.status(201).json({ id: newId });
 };
 
+// Mettre à jour une variable existante
 exports.update = async (req, res) => {
   const { id } = req.params;
   const {
@@ -61,17 +88,29 @@ exports.update = async (req, res) => {
     unit
   } = req.body;
 
+  if (!automate_id || !name || register_address == null) {
+    return res.status(400).json({ error: "Missing fields" });
+  }
+
+  const freq = frequency_sec ? Number(frequency_sec) : 5;
+
   await query(`
     UPDATE variables
-    SET automate_id=?, name=?, register_address=?, register_type=?, frequency_sec=?, unit=?
-    WHERE id=?
+    SET 
+      automate_id = ?,
+      name = ?,
+      register_address = ?,
+      register_type = ?,
+      frequency_sec = ?,
+      unit = ?
+    WHERE id = ?
   `, [
     automate_id,
     name,
     register_address,
-    register_type,
-    frequency_sec,
-    unit,
+    register_type || "holding",
+    freq,
+    unit || null,
     id
   ]);
 
@@ -79,9 +118,11 @@ exports.update = async (req, res) => {
   res.json({ ok: true });
 };
 
+// Supprimer une variable
 exports.remove = async (req, res) => {
   const { id } = req.params;
-  await query("DELETE FROM variables WHERE id=?", [id]);
+
+  await query("DELETE FROM variables WHERE id = ?", [id]);
   await restartSchedulers();
   res.json({ ok: true });
 };
