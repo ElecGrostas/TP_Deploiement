@@ -1,0 +1,129 @@
+/* ----- BASE ----- */
+
+body {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  background: #121212;
+  color: #EDEDED;
+}
+
+h1, h2, h3, h4, h5 {
+  color: #EDEDED;
+  font-weight: 600;
+}
+
+a { text-decoration: none; }
+
+/* ----- NAVBAR ----- */
+
+.navbar {
+  background: #121212 !important;
+  border-bottom: 1px solid #1F1F1F;
+}
+
+.navbar-brand {
+  color: #FF8A00 !important;
+  font-weight: 700;
+  font-size: 20px;
+}
+
+.nav-link {
+  font-weight: 400;
+  color: #CFCFCF !important;
+}
+
+.nav-link.active {
+  color: #FFFFFF !important;
+  border-bottom: 2px solid #FF8A00;
+}
+
+/* ----- CARDS ----- */
+
+.card {
+  background: #1A1A1A;
+  border: 1px solid #2E2E2E;
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 4px 8px rgba(0,0,0,.25);
+}
+
+/* Hover lift */
+.card:hover {
+  transform: translateY(-2px);
+  border-color: #FF8A00;
+  transition: 0.2s ease-in-out;
+}
+
+/* ----- BUTTONS ----- */
+
+.btn-primary {
+  background: #FF8A00;
+  border: none;
+  color: #121212;
+  font-weight: 600;
+}
+
+.btn-primary:hover {
+  background: #FF9F2D;
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid #2E2E2E;
+  color: #CFCFCF;
+}
+
+.btn-secondary:hover {
+  border-color: #FF8A00;
+  color: #FFFFFF;
+}
+
+/* ----- TABLES ----- */
+
+table {
+  color: #CFCFCF;
+}
+
+.table thead th {
+  color: #EDEDED;
+  border-bottom: 1px solid #2E2E2E;
+}
+
+.table td {
+  border-bottom: 1px solid #1F1F1F;
+}
+
+/* ----- INPUTS ----- */
+
+.form-control, .form-select {
+  background: #1A1A1A;
+  border: 1px solid #2E2E2E;
+  color: #EDEDED;
+}
+
+.form-control:focus, .form-select:focus {
+  border-color: #FF8A00;
+  box-shadow: 0 0 0 1px #FF8A00;
+}
+
+/* ----- BADGES ----- */
+
+.badge-soft {
+  background: #2E2E2E;
+  color: #FF8A00;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+/* ----- CHART CARDS ----- */
+
+.chart-card {
+  height: 380px;
+}
+
+.small-muted {
+  font-size: 13px;
+  color: #9A9A9A;
+}
