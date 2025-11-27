@@ -2,7 +2,7 @@
 const apiBaseInput = document.getElementById("apiBaseInput");
 const saveApiBase = document.getElementById("saveApiBase");
 
-apiBaseInput.value = localStorage.getItem("apiBase") || "http://localhost:3000/api";
+apiBaseInput.value = localStorage.getItem("apiBase") || "http://localhost:3001/api";
 
 saveApiBase.addEventListener("click", () => {
   localStorage.setItem("apiBase", apiBaseInput.value.trim());

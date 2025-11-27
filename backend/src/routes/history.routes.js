@@ -1,7 +1,9 @@
-const router = require("express").Router();
-const c = require("../controllers/history.controller");
+const express = require("express");
+const router = express.Router();
+const controller = require("../controllers/history.controller");
 
-router.get("/:variableId", c.getHistory);
-router.get("/:variableId/export", c.exportCsv);
+router.get("/", controller.getAll);
+router.get("/export", controller.exportCSV);
+router.get("/:id/export", controller.exportByVariable); // 👈 route avec paramètre
 
 module.exports = router;

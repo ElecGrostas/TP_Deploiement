@@ -1,47 +1,112 @@
 const { query } = require("../db");
-const { makeCsv } = require("../services/csv.service");
+const { Parser } = require("json2csv");
 
-exports.getHistory = async (req, res) => {
-  const { variableId } = req.params;
-  const { start, end } = req.query;
+exports.getAll = async (req, res) => {
+  try {
+    const { variableId, start, end } = req.query;
 
-  if (!start || !end) {
-    return res.status(400).json({ error: "start and end query params required" });
+    let sql = `
+      SELECT h.id, v.name AS variable, h.value, h.timestamp
+      FROM history h
+      JOIN variables v ON h.variable_id = v.id
+      WHERE 1=1
+    `;
+    const params = [];
+
+    if (variableId) {
+      sql += " AND h.variable_id = ?";
+      params.push(variableId);
+    }
+    if (start) {
+      sql += " AND h.timestamp >= ?";
+      params.push(start);
+    }
+    if (end) {
+      sql += " AND h.timestamp <= ?";
+      params.push(end);
+    }
+
+    sql += " ORDER BY h.timestamp DESC";
+
+    const rows = await query(sql, params);
+    res.json(rows);
+  } catch (err) {
+    console.error("[History] Erreur getAll:", err.message);
+    res.status(500).json({ error: "Erreur récupération historique" });
   }
-
-  const rows = await query(`
-    SELECT timestamp, value
-    FROM history
-    WHERE variable_id=?
-      AND timestamp BETWEEN ? AND ?
-    ORDER BY timestamp ASC
-  `, [variableId, start, end]);
-
-  res.json(rows);
 };
 
-exports.exportCsv = async (req, res) => {
-  const { variableId } = req.params;
+exports.exportCSV = async (req, res) => {
+  try {
+    const { variableId, start, end } = req.query;
+
+    let sql = `
+      SELECT h.id, v.name AS variable, h.value, h.timestamp
+      FROM history h
+      JOIN variables v ON h.variable_id = v.id
+      WHERE 1=1
+    `;
+    const params = [];
+
+    if (variableId) {
+      sql += " AND h.variable_id = ?";
+      params.push(variableId);
+    }
+    if (start) {
+      sql += " AND h.timestamp >= ?";
+      params.push(start);
+    }
+    if (end) {
+      sql += " AND h.timestamp <= ?";
+      params.push(end);
+    }
+
+    sql += " ORDER BY h.timestamp DESC";
+
+    const rows = await query(sql, params);
+    const parser = new Parser({ fields: ["id", "variable", "value", "timestamp"] });
+    const csv = parser.parse(rows);
+
+    res.header("Content-Type", "text/csv");
+    res.attachment("historique_variables.csv");
+    res.send(csv);
+  } catch (err) {
+    console.error("[Export CSV]", err.message);
+    res.status(500).json({ error: "Erreur lors de l'export CSV" });
+  }
+};
+
+exports.exportByVariable = async (req, res) => {
+  const variableId = req.params.id;
   const { start, end } = req.query;
 
-  if (!start || !end) {
-    return res.status(400).json({ error: "start and end query params required" });
+  let sql = `
+    SELECT h.id, v.name AS variable, h.value, h.timestamp
+    FROM history h
+    JOIN variables v ON h.variable_id = v.id
+    WHERE h.variable_id = ?
+  `;
+  const params = [variableId];
+
+  if (start) {
+    sql += " AND h.timestamp >= ?";
+    params.push(start);
+  }
+  if (end) {
+    sql += " AND h.timestamp <= ?";
+    params.push(end);
   }
 
-  const rows = await query(`
-    SELECT timestamp, value
-    FROM history
-    WHERE variable_id=?
-      AND timestamp BETWEEN ? AND ?
-    ORDER BY timestamp ASC
-  `, [variableId, start, end]);
+  try {
+    const rows = await query(sql, params);
+    const parser = new Parser({ fields: ["id", "variable", "value", "timestamp"] });
+    const csv = parser.parse(rows);
 
-  const csv = makeCsv(rows);
-
-  res.setHeader("Content-Type", "text/csv; charset=utf-8");
-  res.setHeader(
-    "Content-Disposition",
-    `attachment; filename=variable_${variableId}.csv`
-  );
-  res.send(csv);
+    res.header("Content-Type", "text/csv");
+    res.attachment(`variable_${variableId}_export.csv`);
+    res.send(csv);
+  } catch (err) {
+    console.error("[Export CSV ID]", err.message);
+    res.status(500).json({ error: "Erreur lors de l'export CSV par ID" });
+  }
 };

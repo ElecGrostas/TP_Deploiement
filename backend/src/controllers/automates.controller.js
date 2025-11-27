@@ -1,4 +1,5 @@
 const { query } = require("../db");
+const { restartSchedulers } = require("../services/scheduler.service");
 
 exports.getAll = async (req, res) => {
   const rows = await query("SELECT * FROM automates ORDER BY id DESC");
@@ -11,15 +12,28 @@ exports.create = async (req, res) => {
     return res.status(400).json({ error: "Missing fields" });
   }
 
-  const r = await query(
-    "INSERT INTO automates (name, ip_address) VALUES (?, ?)",
-    [name, ip_address]
-  );
+  try {
+    const r = await query(
+      "INSERT INTO automates (name, ip_address) VALUES (?, ?)",
+      [name, ip_address]
+    );
 
-  // ⚠️ insertId peut être un BigInt → on le convertit
-  const newId = Number(r.insertId); // ou String(r.insertId) si tu préfères
+    const newId = Number(r.insertId);
 
-  res.status(201).json({ id: newId });
+    // On redémarre les timers (au cas où des variables existent déjà)
+    await restartSchedulers();
+
+    res.status(201).json({ id: newId });
+  } catch (err) {
+    if (err.errno === 1062) {
+      return res.status(400).json({
+        error: "Cette adresse IP est déjà enregistrée."
+      });
+    }
+
+    console.error("[Automates] Erreur create:", err.message);
+    res.status(500).json({ error: "Erreur serveur." });
+  }
 };
 
 exports.update = async (req, res) => {
@@ -30,11 +44,15 @@ exports.update = async (req, res) => {
     "UPDATE automates SET name = ?, ip_address = ? WHERE id = ?",
     [name, ip_address, id]
   );
+
+  await restartSchedulers();
   res.json({ ok: true });
 };
 
 exports.remove = async (req, res) => {
   const { id } = req.params;
+
   await query("DELETE FROM automates WHERE id = ?", [id]);
+  await restartSchedulers();
   res.json({ ok: true });
 };

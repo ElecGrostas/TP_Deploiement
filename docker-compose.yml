@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   mariadb:
     image: mariadb:10.11
@@ -12,28 +10,22 @@ services:
       - "3306:3306"
     volumes:
       - ./db/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql:ro
-    healthcheck:
-      test: ["CMD", "mariadb-admin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
 
   backend:
     build: ./backend
     container_name: tp_backend
     restart: unless-stopped
     environment:
-      PORT: 3000
+      PORT: 3001
       DB_HOST: mariadb
       DB_PORT: 3306
       DB_USER: root
       DB_PASSWORD: root
       DB_NAME: supervision
     depends_on:
-      mariadb:
-        condition: service_healthy
+      - mariadb
     ports:
-      - "3000:3000"
+      - "3001:3001"   # 👈 important
 
   frontend:
     image: nginx:alpine

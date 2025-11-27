@@ -41,11 +41,11 @@ CREATE TABLE history (
     INDEX idx_history_variable_time (variable_id, timestamp)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Ajout des automates Zone 1 à Zone 6
 INSERT INTO automates (name, ip_address) VALUES
-  ('Automate Ligne 1', '192.168.0.10'),
-  ('Automate Ligne 2', '192.168.0.11');
-
-INSERT INTO variables (automate_id, name, register_address, register_type, frequency_sec, unit) VALUES
-  (1, 'Température Cuve',  1, 'holding', 2, '°C'),
-  (1, 'Pression Réseau',   2, 'holding', 5, 'bar'),
-  (2, 'Vitesse Moteur',   10, 'input',   1, 'rpm');
+  ('Zone 1', '172.16.1.21'),
+  ('Zone 2', '172.16.1.22'),
+  ('Zone 3', '172.16.1.23'),
+  ('Zone 4', '172.16.1.24'),
+  ('Zone 5', '172.16.1.25'),
+  ('Zone 6', '172.16.1.26');

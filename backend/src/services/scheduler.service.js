@@ -13,16 +13,15 @@ let timer = null;
  *     register_address,
  *     register_type,
  *     frequency_sec,
- *     elapsed // secondes écoulées depuis la dernière acquisition
- *   },
- *   ...
+ *     elapsed
+ *   }, ...
  * ]
  */
 let varsState = [];
 
 /**
- * Recharge toutes les variables depuis la base
- * et reconstruit l'état interne.
+ * Recharge toutes les variables (avec IP automate) depuis la base.
+ * Si aucune variable → varsState = [] et pas de ping.
  */
 async function refreshVariables() {
   const rows = await query(`
@@ -38,6 +37,12 @@ async function refreshVariables() {
     ORDER BY v.id ASC
   `);
 
+  if (!rows.length) {
+    varsState = [];
+    console.log("[Scheduler] Aucune variable/automate configuré → aucun ping.");
+    return;
+  }
+
   varsState = rows.map((v) => ({
     id: v.id,
     automate_id: v.automate_id,
@@ -49,7 +54,7 @@ async function refreshVariables() {
   }));
 
   console.log(
-    `[Scheduler] Variables chargées : ${varsState.length} (timers en secondes)`
+    `[Scheduler] Variables chargées : ${varsState.length} (ping actifs).`
   );
 }
 
@@ -77,17 +82,14 @@ async function collectVariable(state) {
       "INSERT INTO history (variable_id, value) VALUES (?, ?)",
       [id, value]
     );
-
-    // console.log(`[Scheduler] var ${id} = ${value}`);
   } catch (err) {
     console.error("[Scheduler] Erreur collectVariable:", err.message);
   }
 }
 
 /**
- * Tick global (appelé toutes les secondes).
- * Incrémente le compteur de chaque variable et déclenche la lecture
- * quand elapsed >= frequency_sec.
+ * Tick global (1 fois par seconde).
+ * Si aucune variable → ne fait rien.
  */
 async function tick() {
   if (!varsState.length) return;
@@ -97,19 +99,18 @@ async function tick() {
 
     if (v.elapsed >= v.frequency_sec) {
       v.elapsed = 0;
-      // on ne bloque pas la boucle si un automate répond lentement
       collectVariable(v);
     }
   }
 }
 
 /**
- * Démarre tous les timers :
+ * Démarre les timers :
  *  - recharge les variables
- *  - lance un setInterval(tick, 1000)
+ *  - si au moins 1 variable → setInterval
+ *  - sinon → pas de timer
  */
 async function startSchedulers() {
-  // on nettoie un éventuel timer existant
   if (timer) {
     clearInterval(timer);
     timer = null;
@@ -117,14 +118,17 @@ async function startSchedulers() {
 
   await refreshVariables();
 
-  timer = setInterval(tick, 1000);
+  if (!varsState.length) {
+    console.log("[Scheduler] Pas de variables → timers non démarrés.");
+    return;
+  }
 
-  console.log("[Scheduler] Timers démarrés (tick = 1s)");
+  timer = setInterval(tick, 1000);
+  console.log("[Scheduler] Timers démarrés (tick = 1s).");
 }
 
 /**
- * Redémarre les timers après modification de la config
- * (ajout/suppression/édition de variables, d’automates, etc.)
+ * Redémarre les timers après modification de la config.
  */
 async function restartSchedulers() {
   console.log("[Scheduler] Redémarrage des timers…");
