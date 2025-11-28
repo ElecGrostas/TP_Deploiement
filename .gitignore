@@ -23,14 +23,10 @@ Thumbs.db
 *.swp
 
 # Docker
-**/Dockerfile
 docker-compose.override.yml
 *.pid
 *.sock
 
-# Database
-db/*.sql
-*.db
 
 # Frontend cache/build
 frontend/node_modules/
