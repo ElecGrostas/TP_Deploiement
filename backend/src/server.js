@@ -12,6 +12,9 @@ const historyRoutes = require("./routes/history.routes");
 
 const { startSchedulers } = require("./services/scheduler.service");
 const { readRegister } = require("./services/modbus.service");
+const ecritureRoutes = require("./routes/ecriture.routes");
+app.use("/api/ecriture", ecritureRoutes);
+
 
 const app = express();
 

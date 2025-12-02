@@ -126,3 +126,33 @@ exports.remove = async (req, res) => {
   await restartSchedulers();
   res.json({ ok: true });
 };
+exports.writeValue = async (req, res) => {
+  const id = req.params.id;
+  const { value } = req.body;
+
+  try {
+    const [rows] = await db.query(`
+      SELECT v.*, a.ip_address FROM variables v
+      JOIN automates a ON v.automate_id = a.id
+      WHERE v.id = ?
+    `, [id]);
+    if (!rows.length) return res.status(404).json({ error: "Variable introuvable" });
+
+    const v = rows[0];
+    const client = new modbus();
+    await client.connectTCP(v.ip_address, { port: 502 });
+
+    if (v.register_type === "holding") {
+      await client.writeRegister(v.register_address, parseInt(value));
+    } else if (v.register_type === "coil") {
+      await client.writeCoil(v.register_address, !!value);
+    } else {
+      return res.status(400).json({ error: "Type non supporté" });
+    }
+
+    res.json({ success: true });
+  } catch (e) {
+    console.error("Write error:", e);
+    res.status(500).json({ error: "Erreur Modbus" });
+  }
+};
