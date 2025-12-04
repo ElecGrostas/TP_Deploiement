@@ -1,29 +1,25 @@
 const { query } = require("../db");
 
 exports.getLastValue = async (req, res) => {
-  const { variableId } = req.params;
+  const { id } = req.params;
 
-  const rows = await query(`
-    SELECT value, timestamp
-    FROM history
-    WHERE variable_id=?
-    ORDER BY timestamp DESC
-    LIMIT 1
-  `, [variableId]);
+  try {
+    const rows = await query(
+      "SELECT timestamp, value FROM history WHERE variable_id = ? ORDER BY timestamp DESC LIMIT 1",
+      [id]
+    );
 
-  res.json(rows[0] || null);
-};
+    if (!rows.length) {
+      return res.json({
+        timestamp: null,
+        value: null
+      });
+    }
 
-exports.getAllLastValues = async (req, res) => {
-  const rows = await query(`
-    SELECT h.variable_id, h.value, h.timestamp
-    FROM history h
-    JOIN (
-      SELECT variable_id, MAX(timestamp) AS max_ts
-      FROM history
-      GROUP BY variable_id
-    ) t ON t.variable_id=h.variable_id AND t.max_ts=h.timestamp
-  `);
+    return res.json(rows[0]);
 
-  res.json(rows);
+  } catch (err) {
+    console.error("[Realtime] Erreur :", err);
+    return res.status(500).json({ error: "Erreur serveur" });
+  }
 };
