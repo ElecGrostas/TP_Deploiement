@@ -1,7 +1,18 @@
+// backend/src/controllers/variables.controller.js
+
 const { query } = require("../db");
 const { restartSchedulers } = require("../services/scheduler.service");
 
+// Toute la logique Modbus est centralisée dans le service
+const {
+  readRegister,   // utilise FC1/2/3/4 selon register_type
+  writeCoil,      // FC5  - Force Single Coil
+  writeRegister,  // FC6  - Preset Single Register
+} = require("../services/modbus.service");
+
+// -----------------------------------------------------------------------------
 // Récupérer toutes les variables avec infos automate
+// -----------------------------------------------------------------------------
 exports.getAll = async (req, res) => {
   const rows = await query(`
     SELECT 
@@ -23,14 +34,13 @@ exports.getAll = async (req, res) => {
   res.json(rows);
 };
 
+// -----------------------------------------------------------------------------
 // Récupérer une variable par id
+// -----------------------------------------------------------------------------
 exports.getOne = async (req, res) => {
   const { id } = req.params;
 
-  const rows = await query(
-    "SELECT * FROM variables WHERE id = ?",
-    [id]
-  );
+  const rows = await query("SELECT * FROM variables WHERE id = ?", [id]);
 
   if (!rows[0]) {
     return res.status(404).json({ error: "Variable not found" });
@@ -39,7 +49,9 @@ exports.getOne = async (req, res) => {
   res.json(rows[0]);
 };
 
+// -----------------------------------------------------------------------------
 // Créer une nouvelle variable
+// -----------------------------------------------------------------------------
 exports.create = async (req, res) => {
   const {
     automate_id,
@@ -47,7 +59,7 @@ exports.create = async (req, res) => {
     register_address,
     register_type,
     frequency_sec,
-    unit
+    unit,
   } = req.body;
 
   if (!automate_id || !name || register_address == null) {
@@ -56,27 +68,31 @@ exports.create = async (req, res) => {
 
   const freq = frequency_sec ? Number(frequency_sec) : 5;
 
-  const r = await query(`
+  const r = await query(
+    `
     INSERT INTO variables
       (automate_id, name, register_address, register_type, frequency_sec, unit)
     VALUES (?,?,?,?,?,?)
-  `, [
-    automate_id,
-    name,
-    register_address,
-    register_type || "holding",
-    freq,
-    unit || null
-  ]);
+  `,
+    [
+      automate_id,
+      name,
+      register_address,
+      register_type || "holding",
+      freq,
+      unit || null,
+    ]
+  );
 
-  // insertId peut être un BigInt → on le convertit
   const newId = Number(r.insertId);
 
   await restartSchedulers();
   res.status(201).json({ id: newId });
 };
 
+// -----------------------------------------------------------------------------
 // Mettre à jour une variable existante
+// -----------------------------------------------------------------------------
 exports.update = async (req, res) => {
   const { id } = req.params;
   const {
@@ -85,7 +101,7 @@ exports.update = async (req, res) => {
     register_address,
     register_type,
     frequency_sec,
-    unit
+    unit,
   } = req.body;
 
   if (!automate_id || !name || register_address == null) {
@@ -94,7 +110,8 @@ exports.update = async (req, res) => {
 
   const freq = frequency_sec ? Number(frequency_sec) : 5;
 
-  await query(`
+  await query(
+    `
     UPDATE variables
     SET 
       automate_id = ?,
@@ -104,21 +121,25 @@ exports.update = async (req, res) => {
       frequency_sec = ?,
       unit = ?
     WHERE id = ?
-  `, [
-    automate_id,
-    name,
-    register_address,
-    register_type || "holding",
-    freq,
-    unit || null,
-    id
-  ]);
+  `,
+    [
+      automate_id,
+      name,
+      register_address,
+      register_type || "holding",
+      freq,
+      unit || null,
+      id,
+    ]
+  );
 
   await restartSchedulers();
   res.json({ ok: true });
 };
 
+// -----------------------------------------------------------------------------
 // Supprimer une variable
+// -----------------------------------------------------------------------------
 exports.remove = async (req, res) => {
   const { id } = req.params;
 
@@ -126,33 +147,83 @@ exports.remove = async (req, res) => {
   await restartSchedulers();
   res.json({ ok: true });
 };
+
+// -----------------------------------------------------------------------------
+// Écrire une valeur dans l’automate lié à la variable
+// → utilise FC5 (writeCoil) ou FC6 (writeRegister) via modbus.service
+// -----------------------------------------------------------------------------
 exports.writeValue = async (req, res) => {
-  const id = req.params.id;
-  const { value } = req.body;
+  const { id } = req.params;
+  let { value } = req.body;
+
+  if (value === undefined || value === null) {
+    return res.status(400).json({ error: "Aucune valeur envoyée" });
+  }
+
+  value = Number(value);
+  if (Number.isNaN(value)) {
+    return res.status(400).json({ error: "La valeur doit être un nombre" });
+  }
 
   try {
-    const [rows] = await db.query(`
-      SELECT v.*, a.ip_address FROM variables v
+    // 1) Variable + IP de l'automate
+    const rows = await query(
+      `
+      SELECT v.id, v.register_address, v.register_type, a.ip_address
+      FROM variables v
       JOIN automates a ON v.automate_id = a.id
       WHERE v.id = ?
-    `, [id]);
-    if (!rows.length) return res.status(404).json({ error: "Variable introuvable" });
+    `,
+      [id]
+    );
 
-    const v = rows[0];
-    const client = new modbus();
-    await client.connectTCP(v.ip_address, { port: 502 });
-
-    if (v.register_type === "holding") {
-      await client.writeRegister(v.register_address, parseInt(value));
-    } else if (v.register_type === "coil") {
-      await client.writeCoil(v.register_address, !!value);
-    } else {
-      return res.status(400).json({ error: "Type non supporté" });
+    if (!rows.length) {
+      return res.status(404).json({ error: "Variable introuvable" });
     }
 
-    res.json({ success: true });
-  } catch (e) {
-    console.error("Write error:", e);
-    res.status(500).json({ error: "Erreur Modbus" });
+    const v = rows[0];
+    const addr = Number(v.register_address);
+
+    // 2) Écriture via le service Modbus (FC5 / FC6)
+    let writeOk = false;
+
+    if (v.register_type === "holding") {
+      // FC6 - Preset Single Register
+      writeOk = await writeRegister(v.ip_address, addr, value);
+    } else if (v.register_type === "coil") {
+      // FC5 - Force Single Coil
+      writeOk = await writeCoil(v.ip_address, addr, value ? 1 : 0);
+    } else {
+      return res.status(400).json({
+        error:
+          "Type de registre non supporté pour l'écriture (seulement holding / coil)",
+      });
+    }
+
+    // 3) Lecture immédiate (readback) via FC1/3 (selon type)
+    let readback = null;
+    try {
+      readback = await readRegister(
+        v.ip_address,
+        addr,
+        v.register_type === "coil" ? "coil" : "holding"
+      );
+    } catch (e) {
+      console.warn("[writeValue] readback impossible:", e.message);
+    }
+
+    return res.json({
+      success: writeOk,
+      written: value,
+      readback,
+      debug: {
+        ip: v.ip_address,
+        addr,
+        type: v.register_type,
+      },
+    });
+  } catch (err) {
+    console.error("[Variables] Erreur writeValue:", err);
+    return res.status(500).json({ error: "Erreur Modbus / serveur" });
   }
 };

@@ -1,4 +1,4 @@
-const API_BASE = localStorage.getItem("apiBase") || "http://localhost:3000/api";
+const API_BASE = localStorage.getItem("apiBase") || "http://localhost:3001/api";
 
 async function apiGet(path) {
   const r = await fetch(API_BASE + path);

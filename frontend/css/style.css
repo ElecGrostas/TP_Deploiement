@@ -234,3 +234,19 @@ canvas {
   .card { padding: 14px; }
   .chart-card { height: 320px; }
 }
+/* Rendre le texte du synoptique lisible */
+.synoptic-wrapper,
+.synoptic-wrapper * {
+  color: #e6e6e6 !important;
+}
+
+/* Exceptions : valeurs des petits blocs (peuvent rester blanches) */
+.synoptic-title,
+.synoptic-value {
+  color: #ffffff !important;
+}
+
+/* Les petits statuts Production / Avertissement / Alarme */
+.status-dot + span {
+  color: #f0f0f0 !important;
+}

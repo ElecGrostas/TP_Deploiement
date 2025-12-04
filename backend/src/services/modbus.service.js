@@ -1,65 +1,159 @@
+// backend/src/services/modbus.service.js
 const ModbusRTU = require("modbus-serial");
 
 /**
- * Lit un registre Modbus sur un automate via Modbus TCP.
- *
- * @param {string} automateIp       IP de l'automate (ex: "192.168.0.10")
- * @param {number} registerAddress  Adresse du registre (en entier, ex: 1, 2, 10)
- * @param {string} registerType     "holding" | "input" | "coil" | "discrete"
- * @returns {Promise<number|null>}  Valeur lue ou null en cas d'erreur
+ * Crée et retourne un client Modbus connecté
  */
-async function readRegister(automateIp, registerAddress, registerType) {
+async function connectClient(ip) {
   const client = new ModbusRTU();
+  client.setTimeout(1500);
+
+  await client.connectTCP(ip, { port: 502 });
+  client.setID(1); // ID esclave Modbus par défaut
+
+  return client;
+}
+
+/* -------------------------------------------------------------------------- */
+/*                               FC1 → readCoils                               */
+/* -------------------------------------------------------------------------- */
+async function readCoils(ip, addr) {
+  let client = null;
 
   try {
-    client.setTimeout(1500);
-
-    // Connexion Modbus TCP (port classique 502)
-    await client.connectTCP(automateIp, { port: 502 });
-
-    // Esclave Modbus (ID) : souvent 1 par défaut
-    client.setID(1);
-
-    const addr = Number(registerAddress);
-
-    let data;
-
-    switch (registerType) {
-      case "holding":
-        // 1 registre holding
-        data = await client.readHoldingRegisters(addr, 1);
-        return data.data[0];
-
-      case "input":
-        // 1 registre input
-        data = await client.readInputRegisters(addr, 1);
-        return data.data[0];
-
-      case "coil":
-        // 1 coil → bool → on renvoie 0/1
-        data = await client.readCoils(addr, 1);
-        return data.data[0] ? 1 : 0;
-
-      case "discrete":
-        // 1 entrée discrète → bool → 0/1
-        data = await client.readDiscreteInputs(addr, 1);
-        return data.data[0] ? 1 : 0;
-
-      default:
-        throw new Error("Invalid register type: " + registerType);
-    }
-
+    client = await connectClient(ip);
+    const data = await client.readCoils(Number(addr), 1);
+    return data.data[0] ? 1 : 0;
   } catch (err) {
-    console.error(
-      `[Modbus] Erreur lecture automate ${automateIp}, registre ${registerAddress} (${registerType}) :`,
-      err.message
-    );
+    console.error(`[Modbus] FC1 readCoils ERR @ ${ip}/${addr} :`, err.message);
     return null;
   } finally {
-    try {
-      client.close();
-    } catch (_) {}
+    try { client.close(); } catch (_) {}
   }
 }
 
-module.exports = { readRegister };
+/* -------------------------------------------------------------------------- */
+/*                          FC2 → readDiscreteInputs                           */
+/* -------------------------------------------------------------------------- */
+async function readDiscreteInputs(ip, addr) {
+  let client = null;
+
+  try {
+    client = await connectClient(ip);
+    const data = await client.readDiscreteInputs(Number(addr), 1);
+    return data.data[0] ? 1 : 0;
+  } catch (err) {
+    console.error(`[Modbus] FC2 readDiscreteInputs ERR @ ${ip}/${addr} :`, err.message);
+    return null;
+  } finally {
+    try { client.close(); } catch (_) {}
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/*                       FC3 → readHoldingRegisters                            */
+/* -------------------------------------------------------------------------- */
+async function readHoldingRegisters(ip, addr) {
+  let client = null;
+
+  try {
+    client = await connectClient(ip);
+    const data = await client.readHoldingRegisters(Number(addr), 1);
+    return data.data[0];
+  } catch (err) {
+    console.error(`[Modbus] FC3 readHoldingRegisters ERR @ ${ip}/${addr} :`, err.message);
+    return null;
+  } finally {
+    try { client.close(); } catch (_) {}
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/*                         FC4 → readInputRegisters                            */
+/* -------------------------------------------------------------------------- */
+async function readInputRegisters(ip, addr) {
+  let client = null;
+
+  try {
+    client = await connectClient(ip);
+    const data = await client.readInputRegisters(Number(addr), 1);
+    return data.data[0];
+  } catch (err) {
+    console.error(`[Modbus] FC4 readInputRegisters ERR @ ${ip}/${addr} :`, err.message);
+    return null;
+  } finally {
+    try { client.close(); } catch (_) {}
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/*                               FC5 → writeCoil                               */
+/* -------------------------------------------------------------------------- */
+async function writeCoil(ip, addr, value) {
+  let client = null;
+
+  try {
+    client = await connectClient(ip);
+    await client.writeCoil(Number(addr), Boolean(value)); // FC5
+    return true;
+  } catch (err) {
+    console.error(
+      `[Modbus] FC5 writeCoil ERR @ ${ip}/${addr} value=${value} :`,
+      err.message
+    );
+    return false;
+  } finally {
+    try { client.close(); } catch (_) {}
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/*                         FC6 → writeRegister (Holding)                       */
+/* -------------------------------------------------------------------------- */
+async function writeRegister(ip, addr, value) {
+  let client = null;
+
+  try {
+    client = await connectClient(ip);
+    await client.writeRegister(Number(addr), Number(value)); // FC6
+    return true;
+  } catch (err) {
+    console.error(
+      `[Modbus] FC6 writeRegister ERR @ ${ip}/${addr} value=${value} :`,
+      err.message
+    );
+    return false;
+  } finally {
+    try { client.close(); } catch (_) {}
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/*                    Fonction générique readRegister (ton API)                */
+/* -------------------------------------------------------------------------- */
+async function readRegister(ip, addr, type) {
+  switch (type) {
+    case "holding":  return await readHoldingRegisters(ip, addr);
+    case "input":    return await readInputRegisters(ip, addr);
+    case "coil":     return await readCoils(ip, addr);
+    case "discrete": return await readDiscreteInputs(ip, addr);
+    default:
+      console.error("[Modbus] Type de registre invalide :", type);
+      return null;
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+
+module.exports = {
+  // Lecture
+  readRegister,
+  readCoils,
+  readDiscreteInputs,
+  readHoldingRegisters,
+  readInputRegisters,
+
+  // Écriture
+  writeCoil,        // FC5
+  writeRegister,    // FC6
+};

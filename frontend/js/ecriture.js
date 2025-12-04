@@ -1,74 +1,110 @@
 // ecriture.js
 
-import { writeVariable } from './api.js';
+import { writeVariable, getVariables } from './api.js';
 
-// Protection par mot de passe
-const pwd = prompt("Mot de passe administrateur :");
-fetch("/api/ecriture/auth", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ password: pwd })
-})
-.then(res => {
-  if (!res.ok) throw new Error("Accès refusé");
-})
-.catch(() => {
-  alert("Mot de passe incorrect.");
-  window.location.href = "index.html";
-});
-
-// Sélection des éléments
 const writeForm = document.getElementById('write-form');
-const variableSelect = document.getElementById('automateSelect');
+const automateSelect = document.getElementById('automateSelect');
+const variableSelect = document.getElementById('variableSelect'); // <select> pour les variables
 const valueInput = document.getElementById('valueToWrite');
 const resultBox = document.getElementById('resultBox');
 
-// Dictionnaire des variables
-let variableMap = {};
-
-// Chargement dynamique des variables
+/**
+ * Charge la liste des variables depuis la DB (via l'API)
+ * et remplit le select #variableSelect
+ */
 async function loadVariables() {
   try {
-    const res = await fetch('/api/variables');
-    const variables = await res.json();
+    const variables = await getVariables(); 
+    // ⬆️ ADAPTE ce nom si besoin : même fonction que dans config.html
 
-    variableSelect.innerHTML = '';
+    if (!Array.isArray(variables) || variables.length === 0) {
+      variableSelect.innerHTML = `
+        <option disabled selected>Aucune variable configurée</option>
+      `;
+      return;
+    }
+
+    // Option par défaut
+    variableSelect.innerHTML = `
+      <option value="" disabled selected>-- Sélectionner une variable --</option>
+    `;
+
+    // On suppose que chaque variable ressemble à :
+    // { id, name, address } ou { id, nom, registre }
     variables.forEach(v => {
       const option = document.createElement('option');
-      option.value = v.id;
-      option.textContent = `${v.name} (${v.ip_address})`;
-      variableMap[v.id] = v; // Stocker info pour l'écriture
+
+      // 💡 ADAPTE ces champs selon ton modèle en DB
+      option.value = v.address ?? v.registre ?? v.register;
+      option.textContent = v.name ?? v.nom ?? `Var ${v.id}`;
+      option.dataset.id = v.id;
+
       variableSelect.appendChild(option);
     });
+
   } catch (err) {
-    console.error('Erreur chargement variables', err);
-    alert("Erreur lors du chargement des variables.");
+    console.error('Erreur lors du chargement des variables :', err);
+    variableSelect.innerHTML = `
+      <option disabled selected>Erreur chargement variables</option>
+    `;
   }
 }
 
+// Soumission du formulaire d’écriture
 writeForm.addEventListener('submit', async (e) => {
   e.preventDefault();
 
-  const varId = variableSelect.value;
-  const variable = variableMap[varId];
+  const automateIp = automateSelect.value;
+  const selectedOption = variableSelect.options[variableSelect.selectedIndex];
+  const selectedRegister = selectedOption ? selectedOption.value : '';
+
+  const registerAddress = parseInt(selectedRegister, 10);
   const value = parseFloat(valueInput.value);
 
-  if (!variable || isNaN(value)) {
-    alert('Veuillez sélectionner une variable et entrer une valeur valide.');
-    return;
-  }
+ async function writeValue(e) {
+  e.preventDefault();
+  const id = document.getElementById("varSelect").value;
+  const val = document.getElementById("valToSend").value;
+
+  if (!id) return alert("Veuillez sélectionner une variable");
 
   try {
-    const res = await writeVariable(variable.ip_address, variable.register_address, value);
-    resultBox.textContent = `✅ Écriture réussie sur ${variable.name} : ${res.message}`;
-    resultBox.classList.remove('text-danger');
-    resultBox.classList.add('text-success');
+    const result = await apiPost(`/variables/${id}/write`, { value: val });
+
+    console.log("Résultat backend:", result);
+
+    if (result.success) {
+      alert(
+        "✔ Écriture réussie\n" +
+        "Valeur envoyée : " + result.written + "\n" +
+        "Valeur relue   : " + result.readback + "\n\n" +
+        "Debug:\n" +
+        "IP : " + result.debug.ip + "\n" +
+        "Registre : " + result.debug.addr + "\n" +
+        "Type : " + result.debug.type
+      );
+    } else {
+      alert("Erreur backend : " + JSON.stringify(result));
+    }
+
   } catch (err) {
-    resultBox.textContent = `❌ Erreur : ${err.message || 'Échec de l\'écriture'}`;
-    resultBox.classList.remove('text-success');
-    resultBox.classList.add('text-danger');
+    alert("Erreur technique : " + err.message);
+  }
+}
+
+
+
+  try {
+    const res = await writeVariable(automateIp, registerAddress, value);
+
+    resultBox.innerText = `Écriture réussie sur ${selectedOption.textContent} (registre ${registerAddress}) : ${JSON.stringify(res)}`;
+  } catch (err) {
+    console.error('Erreur écriture :', err);
+    resultBox.innerText = `Erreur lors de l’écriture : ${err.message ?? err}`;
   }
 });
 
-// Charger les variables dès que la page est prête
-loadVariables();
+// Initialisation au chargement de la page
+document.addEventListener('DOMContentLoaded', () => {
+  loadVariables();
+});

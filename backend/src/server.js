@@ -9,32 +9,29 @@ const automatesRoutes = require("./routes/automates.routes");
 const variablesRoutes = require("./routes/variables.routes");
 const realtimeRoutes = require("./routes/realtime.routes");
 const historyRoutes = require("./routes/history.routes");
+const ecritureRoutes = require("./routes/ecriture.routes");
 
 const { startSchedulers } = require("./services/scheduler.service");
 const { readRegister } = require("./services/modbus.service");
-const ecritureRoutes = require("./routes/ecriture.routes");
-app.use("/api/ecriture", ecritureRoutes);
+const variablesController = require("./controllers/variables.controller");
 
-
+// ===== Création de l'app =====
 const app = express();
 
 // ===== Middlewares globaux =====
-app.use(cors());              // Autorise toutes les origines (pratique en dev)
-app.use(express.json());      // Pour lire le JSON dans le body
+app.use(cors());
+app.use(express.json());
 
-// Petit log minimal des requêtes (optionnel mais utile)
 app.use((req, res, next) => {
   console.log(`[HTTP] ${req.method} ${req.url}`);
   next();
 });
 
 // ===== Frontend statique =====
-// Sert les fichiers du frontend (HTML, CSS, JS...) depuis le dossier /frontend
-app.use(express.static(path.join(__dirname, "../../frontend")));
+app.use(express.static(path.join(__dirname, "./frontend")));
 
-// Page d’accueil = index.html
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "../../frontend/index.html"));
+  res.sendFile(path.join(__dirname, "./frontend/index.html"));
 });
 
 // ===== Routes utilitaires =====
@@ -50,7 +47,7 @@ app.get("/api/test-modbus", async (req, res) => {
 
   if (!ip || !addr || !type) {
     return res.status(400).json({
-      error: "Paramètres requis : ip, addr, type (holding|input|coil|discrete)"
+      error: "Paramètres requis : ip, addr, type (holding|input|coil|discrete)",
     });
   }
 
@@ -68,9 +65,31 @@ app.use("/api/automates", automatesRoutes);
 app.use("/api/variables", variablesRoutes);
 app.use("/api/realtime", realtimeRoutes);
 app.use("/api/history", historyRoutes);
-app.get("/", (req, res) => {
+app.use("/api/ecriture", ecritureRoutes);
+
+// 🔥 Route d’écriture DIRECTE (même si le router merde)
+app.post("/api/variables/:id/write", variablesController.writeValue);
+
+// Message de bienvenue API (optionnel)
+app.get("/api", (req, res) => {
   res.json({ message: "Bienvenue sur l'API du système de supervision Modbus." });
 });
+
+// Route pour mdp
+app.post("/api/admin/login", (req, res) => {
+  const { password } = req.body;
+
+  if (!password) {
+    return res.status(400).json({ success: false, error: "Missing password" });
+  }
+
+  if (password === process.env.ADMIN_PASSWORD) {
+    return res.json({ success: true });
+  }
+
+  return res.status(401).json({ success: false, error: "Invalid password" });
+});
+
 // ===== Gestion 404 API =====
 app.use("/api", (req, res) => {
   res.status(404).json({ error: "API route not found" });
