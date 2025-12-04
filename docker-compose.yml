@@ -1,0 +1,39 @@
+services:
+  mariadb:
+    image: mariadb:10.11
+    container_name: tp_mariadb
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: supervision
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./db/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql:ro
+
+  backend:
+    build: ./backend
+    container_name: tp_backend
+    restart: unless-stopped
+    environment:
+      PORT: 3001
+      DB_HOST: mariadb
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_NAME: supervision
+    depends_on:
+      - mariadb
+    ports:
+      - "3001:3001"   # 👈 important
+
+  frontend:
+    image: nginx:alpine
+    container_name: tp_frontend
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+    depends_on:
+      - backend

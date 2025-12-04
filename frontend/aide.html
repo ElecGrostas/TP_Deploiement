@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Supervision – Aide & Mode d’emploi</title>
+
+  <!-- Bootstrap + DA globale -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="./css/style.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* Éclaircir UNIQUEMENT les textes trop foncés */
+    
+    /* Ancien : gris presque invisible → devient gris clair lisible */
+    .small-muted,
+    .card .small-muted,
+    p.small-muted,
+    .card p,
+    .card li,
+    .card ol li,
+    .card ul li {
+      color: #dddddd !important;
+    }
+
+    /* Améliore la lisibilité sans dénaturer ton thème */
+    .card {
+      background-color: #0f0f0f !important;
+      border: 1px solid #2c2c2c !important;
+    }
+
+    h5, h6, h2 {
+      color: #ffffff !important;
+    }
+
+    /* Liens : restent visibles */
+    a {
+      color: #ff9f3c;
+      text-decoration: underline;
+    }
+    a:hover {
+      color: #ffc57c;
+    }
+  </style>
+
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg shadow-sm">
+  <div class="container">
+    <a class="navbar-brand d-flex align-items-center gap-2" href="./index.html">
+      <img src="./img/hub-logo.png" alt="logo" style="height:26px; border-radius:4px;">
+      <span>Supervision</span>
+    </a>
+    <div class="navbar-nav">
+      <a class="nav-link" href="./config.html">Configuration</a>
+      <a class="nav-link" href="./dashboard.html">Dashboard</a>
+      <a class="nav-link" href="./export.html">Export</a>
+      <a class="nav-link" href="./ecriture.html">Écriture</a>
+      <a class="nav-link active" href="./aide.html">Aide</a>
+    </div>
+  </div>
+</nav>
+
+<main class="container py-4">
+
+  <header class="mb-4">
+    <h2 class="mb-1">Aide & mode d’emploi</h2>
+    <p class="small-muted mb-0">
+      Cette page explique comment utiliser l’interface de supervision.
+    </p>
+  </header>
+
+  <!-- SOMMAIRE -->
+  <section class="mb-4">
+    <div class="card">
+      <h5>Sommaire</h5>
+      <ul class="small mb-0">
+        <li><a href="#config">1. Configuration des automates & variables</a></li>
+        <li><a href="#dashboard">2. Dashboard temps réel</a></li>
+        <li><a href="#export">3. Export des données</a></li>
+        <li><a href="#ecriture">4. Écriture (admin)</a></li>
+        <li><a href="#seuils">5. Seuils & alarmes</a></li>
+        <li><a href="#faq">6. FAQ</a></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 1 CONFIG -->
+  <section id="config" class="mb-4">
+    <div class="card">
+      <h5>1. Configuration des automates & variables</h5>
+      <p class="small-muted">Cette page permet d’ajouter les automates Modbus et les variables à superviser.</p>
+
+      <div class="row g-3">
+        <div class="col-md-6">
+          <h6>1.1. Automates</h6>
+          <ol class="small">
+            <li>Ouvrir le menu <strong>Configuration</strong>.</li>
+            <li>Cliquer sur <em>Ajouter un automate</em>.</li>
+            <li>Remplir :
+              <ul>
+                <li>Nom (ex : “Automate L1”).</li>
+                <li>IP (ex : <span style="color:#ff6d6d">172.16.1.24</span>).</li>
+              </ul>
+            </li>
+          </ol>
+          <p class="small-muted">⚠ Le port 502 doit être ouvert.</p>
+        </div>
+
+        <div class="col-md-6">
+          <h6>1.2. Variables</h6>
+          <ol class="small">
+            <li>Cliquer sur <em>Ajouter une variable</em>.</li>
+            <li>Choisir un automate.</li>
+            <li>Définir :
+              <ul>
+                <li>Nom.</li>
+                <li>Adresse (ex : <span style="color:#ff6d6d">505</span>).</li>
+                <li>Type :
+                  <ul>
+                    <li><span style="color:#ff9bb3">holding</span> (écriture possible)</li>
+                    <li><span style="color:#87c9ff">input</span> (lecture seule)</li>
+                    <li><span style="color:#ffcd76">coil</span> (bit TOR)</li>
+                    <li><span style="color:#c3a6ff">discrete</span> (entrée TOR)</li>
+                  </ul>
+                </li>
+                <li>Fréquence de lecture.</li>
+              </ul>
+            </li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 DASHBOARD -->
+  <section id="dashboard" class="mb-4">
+    <div class="card">
+      <h5>2. Dashboard & supervision</h5>
+      <p class="small-muted">Cette page affiche les variables en temps réel.</p>
+
+      <ul class="small">
+        <li>Choisir une “variable principale” pour le graphe global.</li>
+        <li>Utiliser “Ajouter un graphe” pour suivre plusieurs variables.</li>
+        <li>Les automates affichent leur état (OK / Erreur comm).</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 3 EXPORT -->
+  <section id="export" class="mb-4">
+    <div class="card">
+      <h5>3. Export des historiques</h5>
+      <p class="small-muted">
+        Le module d’export permet de télécharger les données au format CSV.
+      </p>
+      <ul class="small">
+        <li>Sélectionner variables + période.</li>
+        <li>Télécharger le CSV.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 4 ECRITURE -->
+  <section id="ecriture" class="mb-4">
+    <div class="card">
+      <h5>4. Écriture vers les automates</h5>
+      <p class="small-muted">L'accès est protégé par mot de passe admin.</p>
+
+      <ul class="small">
+        <li>Entrer le mot de passe.</li>
+        <li>Choisir la variable.</li>
+        <li>Envoyer une valeur → Modbus FC5/FC6.</li>
+      </ul>
+
+      <p class="small-muted mb-0">
+        ⚠ L’automate doit utiliser le registre, sinon rien ne se passe physiquement.
+      </p>
+    </div>
+  </section>
+
+  <!-- 5 SEUILS -->
+  <section id="seuils" class="mb-4">
+    <div class="card">
+      <h5>5. Seuils & alarmes</h5>
+
+      <ul class="small">
+        <li>Chaque graphe peut recevoir un seuil bas et/ou haut.</li>
+        <li>Un état “OK / ALERTE” s’affiche selon les dépassements.</li>
+        <li>Le tableau d’alarmes liste les événements détectés.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 6 FAQ -->
+  <section id="faq" class="mb-5">
+    <div class="card">
+      <h5>6. FAQ</h5>
+
+      <p class="small"><strong>Q :</strong> L’écriture réussit mais rien ne bouge ?</p>
+      <p class="small-muted">
+        R : Le registre est bien écrit mais l’automate ne l’utilise pas dans son programme.
+      </p>
+
+      <p class="small mt-3"><strong>Q :</strong> Je lis la coil mais pas le holding ?</p>
+      <p class="small-muted">
+        R : La coil reflète une vraie sortie TOR, le holding est un registre mémoire interne non utilisé.
+      </p>
+    </div>
+  </section>
+
+   <p class="small-muted mt-4 text-center">
+    © 2025 – L'Interface de supervision la plus chaude de ta région • Aide & mode d’emploi
+  </p>
+
+</main>
+
+</body>
+</html>
